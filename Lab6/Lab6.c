@@ -1,6 +1,6 @@
 /*
     Date: Feb. 24, 2021
-    Lab Purpose: This is a battleship game
+    Lab Purpose: This is a battleship game so i wrote this comment
     Name: Derek Chen
     Student#: 1006751267
 */
