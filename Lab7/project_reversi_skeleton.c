@@ -15,16 +15,15 @@
 // Note: You may want to add more function declarations here
 // =========   Function declaration  ==========
 /* None for now */
-void configureBoard(char move[3]);
+void configureBoard(char board[][26], char move[3]);
 void initializeBoard(char board[][26], int n);
 
 // this function configures the board with inputs
-void configureBoard(char move[3]){
-    printf("%c %c %c", move[0], move[1],move[2]);
+void configureBoard(char board[][26], char move[3]){
     char player = move[0];
     int rowIndex = (int) move[1] - 'a', colIndex = (int) move[2] - 'a';
 
-    printf("%d %d", rowIndex, colIndex);
+    board[rowIndex][colIndex] = player;
 }
 
 // this function initializes the board and the initial four center tiles
@@ -139,9 +138,11 @@ int main(void) {
     // Complete your main function here
     int boardDemension;
     char board[26][26];
+    char clearBuffer;
 
     printf("Enter the board dimension:");
-    scanf("%d",&boardDemension);
+    // scanf leaves newline in the buffer; solution is to put a whitespace before %
+    scanf(" %d",&boardDemension);
 
     // initializes board
     initializeBoard(board, boardDemension);
@@ -153,12 +154,11 @@ int main(void) {
     char move[3];
 
     while(move[0] != '!' && move[1] != '!' && move[2] != '!'){
-        scanf("%c %c %c", &move[0], &move[1], &move[2]);
-        printf("%c %c %c", move[0], move[1], move[2]);
-        // configureBoard(move);
+        scanf(" %c%c%c", &move[0], &move[1], &move[2]);
+        printf("%c%c%c", move[0], move[1], move[2]);
+        configureBoard(board, move);
     }
 
     return 0;
 }
 #endif // DO NOT DELETE THIS LINE
-
