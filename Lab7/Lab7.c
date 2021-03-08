@@ -7,6 +7,9 @@
  */
 
 #include "project_reversi_skeleton.h" // DO NOT modify this line
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 // Note: You may want to add more function declarations here
 // =========   Function declaration  ==========
@@ -66,13 +69,48 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) {
     (void)turn;
     (void)row;
     (void)col;
+    
     return 0;
 }
 
 #ifndef COMPETE_MODE // DO NOT DELETE THIS LINE
 int main(void) {
     // Complete your main function here
+    int boardDemension;
+
+    printf("Enter the board dimension:");
+    scanf("%d",&boardDemension);
     
+    char board[boardDemension + 1][boardDemension + 1];
+
+    // initialize board
+    char cRow = 'a', cCol = 'a';
+    for(int i = 0;i < boardDemension + 1; i++){
+        if(i != 0){
+            board[i][0] = cRow;
+            cRow ++;
+        }
+        for(int j = 0;j < boardDemension + 1; j++){
+            if(i == 0){
+                if(j == 0){
+                    board[i][j] = ' ';
+                }else{
+                    board[i][j] = cCol;
+                    cCol ++;
+                }
+            }else{
+                if(j != 0){
+                    board[i][j] = 'U';
+                }
+            }
+            if(j == 0){
+                printf("%c ",board[i][j]);
+            }else{
+                printf("%c",board[i][j]);
+            }
+        }
+        printf("\n");
+    }
     return 0;
 }
 #endif // DO NOT DELETE THIS LINE
