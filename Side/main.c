@@ -13,10 +13,5 @@ void test(int a[3]){
 }
 
 int main(){
-    int a[3] = {1,2,3};
-    int deltaRow = -1;
-    int n = 2;
-    for(int i = 0; i < n && i > -1; i += deltaRow){
-        printf("?");
-    }
+    int i[4][4];
 }

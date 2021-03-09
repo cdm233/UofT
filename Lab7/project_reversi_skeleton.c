@@ -1,9 +1,9 @@
 /*
  * File:        project_reversi_skeleton.c
  * Author:      APS105H1 Teaching Team
- * Modified by: * You Name Here *
- *
- * Date: Jan 2021
+ * Modified by: Derek Chen *
+ * Student#:    1006751267
+ * Date:        Jan 2021
  */
 
 #include "project_reversi_skeleton.h" // DO NOT modify this line
@@ -17,6 +17,7 @@
 /* None for now */
 void configureBoard(char board[][26], char move[3]);
 void initializeBoard(char board[][26], int n);
+void printValidMoves(char board[][26], int boardDemension, char colour);
 
 // this function configures the board with inputs
 void configureBoard(char board[][26], char move[3]){
@@ -30,7 +31,7 @@ void configureBoard(char board[][26], char move[3]){
 void initializeBoard(char board[][26], int n){
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++){
-            if(i + 1 == n/2){
+            if(i + 1 == n/2){ // the upper middle row
                 if(i * j == (n-2) * (n-2) / 4){
                     board[i][j] = 'W';
                 }else if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
@@ -38,7 +39,7 @@ void initializeBoard(char board[][26], int n){
                 }else{
                     board[i][j] = 'U';
                 }
-            }else if(i == n/2){
+            }else if(i == n/2){ // the lower middle row
                 if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
                     board[i][j] = 'B';
                 }else if(i * j == ((n-2) / 2 + 1) * ((n-2) / 2 + 1)){
@@ -46,8 +47,30 @@ void initializeBoard(char board[][26], int n){
                 }else{
                     board[i][j] = 'U';
                 }
-            }else{
+            }else{ // every other places
                 board[i][j] = 'U';
+            }
+        }
+    }
+}
+
+void printValidMoves(char board[][26], int boardDemension, char colour){
+    printf("Available moves for %c:\n", colour);
+    // for loops used to iterate every tile of the board
+    for(int x = 0; x < boardDemension; x++){
+        for(int y = 0; y < boardDemension; y++){
+            if(board[x][y] == 'U'){ // only checks if the tile is not occupied
+                bool printed = false; // the same tile can only be printed once 
+                for(int i = -1; i <= 1; i ++){
+                    for(int j = -1; j <= 1; j ++){
+                        if(!(i == 0 && j == 0)){ // deltaRow and deltaCol cannot both be 0
+                            if(checkLegalInDirection(board, boardDemension, x, y, colour, i, j) && !printed){
+                                printf("%c%c\n", 'a' + x, 'a' + y); // prints the coordinate in letter
+                                printed = true;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -64,7 +87,7 @@ void printBoard(char board[][26], int n) {
     (void)n;
 
     char initial = 'a';
-    // prints the column indexes
+    // prints the first row: column indexes
     for(int i = 0; i <= n; i++){
         if(i == 0){
             printf("  ");
@@ -76,7 +99,7 @@ void printBoard(char board[][26], int n) {
 
     printf("\n");
 
-    // main loop for board generation
+    // main loop to print the board
     initial = 'a';
     for(int i = 0; i < n; i++){
         printf("%c ", initial);
@@ -97,6 +120,10 @@ bool positionInBounds(int n, int row, int col) {
     (void)n;
     (void)row;
     (void)col;
+
+    if(row <= n && row >= 0 && col <= n && col >= 0){
+        return true;
+    }
     return false;  
 }
 
@@ -117,42 +144,59 @@ bool checkLegalInDirection(char board[][26], int n, int row,
     (void)deltaCol;
 
     char oppositeColour = colour == 'W' ? 'B' : 'W'; // if passed colour is B then W
-    bool hasOppositeColour = false;
+    // the tile only valid if there is an opposite colour in the immediate adjacent tile
+    bool adjacentOppositeColour = false; 
+
+    // checks if the tile in the given direction is within the board
+    if(!positionInBounds(n, row + deltaRow, col + deltaCol)){
+        return false;
+    }
 
     if(deltaRow != 0){
-        for(int i = row + deltaRow; i < n && i > 0; i += deltaRow){
+        // initializes the col index
+        int j = col + deltaCol;
+
+        // j needs to increase at the same time as i to unsure it's in the diagonal directgion
+        for(int i = row + deltaRow; i < n && i > 0; i += deltaRow, j += deltaCol){ 
             if(deltaCol != 0){ // this is in the diagonal direction
-                for(int j = col + deltaCol; j < n && j > 0; j += deltaCol){
-                    if(board[i][j] == oppositeColour){
-                        hasOppositeColour = true;
+                if(i == row + deltaRow && j == col + deltaCol){
+                    // check if there is a immediate adjacent opposite colour in the given direction
+                    if(board[i][j] == oppositeColour){ 
+                        adjacentOppositeColour = true;
+                    }else{ // if there is not then no need to continue
+                        return false;
                     }
-                    if(hasOppositeColour && board[i][j] == colour){
-                        printf("\nthis is a valid position! (diagonal)\nposition:%d %d", row, col);
-                        return true;
-                    }
+                }
+
+                // the given direction is only valid if there is also a player's colour in the end
+                if(board[i][j] == colour && adjacentOppositeColour){
+                    return true;
                 }
             }else{ // deltaCol == 0, this is in the direction of up and down
-                if(board[i][col] == oppositeColour){
-                    hasOppositeColour = true;
+                if(i == row + deltaRow){
+                    if(board[i][col] != oppositeColour){
+                        return false;
+                    }
                 }
-                if(hasOppositeColour && board[i][col] == colour){
-                    printf("\nthis is a valid position! (up&down)\nposition:%d %d", row, col);
+                if(board[i][col] == colour){
                     return true;
                 }
             }
         }    
     }else{ // in the direction of left or right
         for(int j = col + deltaCol; j < n && j > 0; j += deltaCol){
-            if(board[row][j] == oppositeColour){
-                hasOppositeColour = true;
+            if(j == col + deltaCol){
+                if(board[row][j] != oppositeColour){
+                    return false;
+                }
             }
-            if(hasOppositeColour && board[row][j] == colour){
-                printf("\nthis is a valid position! (left&right)\nposition:%d %d", row, col);
+            if(board[row][j] == colour){
                 return true;
             }
         }
     }
 
+    // just in case everything fails
     return false;             
 }
 
@@ -168,6 +212,7 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) {
     (void)turn;
     (void)row;
     (void)col;
+
     return 0;
 }
 
@@ -175,8 +220,7 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) {
 int main(void) {
     // Complete your main function here
     int boardDemension;
-    char board[26][26];
-    char clearBuffer;
+    char board[26][26]; // board initialized as 26 by 26 static array
 
     printf("Enter the board dimension:");
     // scanf leaves newline in the buffer; solution is to put a whitespace before %
@@ -188,30 +232,22 @@ int main(void) {
     // prints board
     printBoard(board, boardDemension);
 
+    // board configuration entry phase
     printf("Enter board configuration:");
     char move[3];
 
+    // loop will terminate if all three inputs are '!'
     while(move[0] != '!' && move[1] != '!' && move[2] != '!'){
         scanf(" %c%c%c", &move[0], &move[1], &move[2]);
-        printf("%c%c%c", move[0], move[1], move[2]);
         configureBoard(board, move);
     }
 
-    // below for loops checks in all 8 direction
-    for(int x = 0; x < boardDemension; x++){
-        for(int y = 0; y < boardDemension; y++){
-            if(board[x][y] == 'U'){ // only checks if the tile is not occupied
-                for(int i = -1; i <= 1; i ++){
-                    for(int j = -1; j <= 1; j ++){
-                        if(!(i == 0 && j == 0)){
-                            checkLegalInDirection(board, boardDemension, x, y, 'W', 1, 1);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // prints board
+    printBoard(board, boardDemension);
 
+    // prints all avaliable moves for both players
+    printValidMoves(board, boardDemension, 'W');
+    printValidMoves(board, boardDemension, 'B');
     return 0;
 }
 #endif // DO NOT DELETE THIS LINE
