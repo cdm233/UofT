@@ -14,16 +14,9 @@ void test(int a[3]){
 
 int main(){
     int a[3] = {1,2,3};
-    test(a);
-
-    printf("%d%d%d",a[0],a[1],a[2]);
-    
-    // char move[3]; 
-    // int n;
-
-    // printf("a");
-    // scanf("%d\n",&n);
-
-    // scanf("%c %c %c", &move[0], &move[1], &move[2]);
-    // printf("%c %c %c", move[0], move[1], move[2]);
+    int deltaRow = -1;
+    int n = 2;
+    for(int i = 0; i < n && i > -1; i += deltaRow){
+        printf("?");
+    }
 }

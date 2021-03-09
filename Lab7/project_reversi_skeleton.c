@@ -115,6 +115,44 @@ bool checkLegalInDirection(char board[][26], int n, int row,
     (void)colour;
     (void)deltaRow;
     (void)deltaCol;
+
+    char oppositeColour = colour == 'W' ? 'B' : 'W'; // if passed colour is B then W
+    bool hasOppositeColour = false;
+
+    if(deltaRow != 0){
+        for(int i = row + deltaRow; i < n && i > 0; i += deltaRow){
+            if(deltaCol != 0){ // this is in the diagonal direction
+                for(int j = col + deltaCol; j < n && j > 0; j += deltaCol){
+                    if(board[i][j] == oppositeColour){
+                        hasOppositeColour = true;
+                    }
+                    if(hasOppositeColour && board[i][j] == colour){
+                        printf("\nthis is a valid position! (diagonal)\nposition:%d %d", row, col);
+                        return true;
+                    }
+                }
+            }else{ // deltaCol == 0, this is in the direction of up and down
+                if(board[i][col] == oppositeColour){
+                    hasOppositeColour = true;
+                }
+                if(hasOppositeColour && board[i][col] == colour){
+                    printf("\nthis is a valid position! (up&down)\nposition:%d %d", row, col);
+                    return true;
+                }
+            }
+        }    
+    }else{ // in the direction of left or right
+        for(int j = col + deltaCol; j < n && j > 0; j += deltaCol){
+            if(board[row][j] == oppositeColour){
+                hasOppositeColour = true;
+            }
+            if(hasOppositeColour && board[row][j] == colour){
+                printf("\nthis is a valid position! (left&right)\nposition:%d %d", row, col);
+                return true;
+            }
+        }
+    }
+
     return false;             
 }
 
@@ -157,6 +195,21 @@ int main(void) {
         scanf(" %c%c%c", &move[0], &move[1], &move[2]);
         printf("%c%c%c", move[0], move[1], move[2]);
         configureBoard(board, move);
+    }
+
+    // below for loops checks in all 8 direction
+    for(int x = 0; x < boardDemension; x++){
+        for(int y = 0; y < boardDemension; y++){
+            if(board[x][y] == 'U'){ // only checks if the tile is not occupied
+                for(int i = -1; i <= 1; i ++){
+                    for(int j = -1; j <= 1; j ++){
+                        if(!(i == 0 && j == 0)){
+                            checkLegalInDirection(board, boardDemension, x, y, 'W', 1, 1);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return 0;
