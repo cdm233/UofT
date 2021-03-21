@@ -1,23 +1,24 @@
-/*
- * File:        project_reversi_skeleton.c
- * Author:      APS105H1 Teaching Team
- * Modified by: Derek Chen *
- * Student#:    1006751267
- * Date:        Jan 2021
- */
-
 #include "project_reversi_skeleton.h" // DO NOT modify this line
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
 
+/*
+ * Author:      APS105H1 Teaching Team
+ * Modified by: * Derek Chen *
+ *
+ * Date: Jan 2021
+ */
+
 // Note: You may want to add more function declarations here
 // =========   Function declaration  ==========
-/* None for now */
+
 void configureBoard(char board[][26], char move[3]);
 void initializeBoard(char board[][26], int n);
 void printValidMoves(char board[][26], int boardDemension, char colour);
+void checkValidMove(char board[][26], int boardDemension, char colour, int, int, int *, int details[8][3]);
+void flip(char board[][26], int boardDemension, char colour, int, int, int detail[3]);
 
 // this function configures the board with inputs
 void configureBoard(char board[][26], char move[3]){
@@ -73,6 +74,37 @@ void printValidMoves(char board[][26], int boardDemension, char colour){
                 }
             }
         }
+    }
+}
+
+void checkValidMove(char board[][26], int boardDemension, char colour, int x, int y, int *num, int details[8][3]){
+    int count = 0, tilesNum;
+    for(int i = -1; i <= 1; i ++){
+        for(int j = -1; j <= 1; j ++){
+            if(!(i == 0 && j == 0)){ // deltaRow and deltaCol cannot both be 0
+                if ((tilesNum = checkLegalInDirection(board, boardDemension, x, y, colour, i, j)) != 0){
+                    details[count][0] = i;
+                    details[count][1] = j;
+                    details[count][2] = tilesNum;
+
+                    count ++;
+
+                    *num = count;
+                    // printf("col: %d, row: %d, tiles: %d\n", i, j, tilesNum);
+                }
+            }
+        }
+    }
+}
+
+void flip(char board[][26], int boardDemension, char colour, int x, int y, int detail[3]){
+    int tilesToFlip = detail[2];
+    for(int i = 0; i <= tilesToFlip; i++){ // i is deltaRow
+        if(i == 0){
+            board[y][x] = colour;
+            continue;
+        }
+        board[y + i*detail[0]][x + i*detail[1]] = colour;
     }
 }
 
@@ -222,7 +254,7 @@ int main(void) {
     int boardDemension;
     char board[26][26]; // board initialized as 26 by 26 static array
 
-    printf("Enter the board dimension:");
+    printf("Enter the board dimension: ");
     // scanf leaves newline in the buffer; solution is to put a whitespace before %
     scanf(" %d",&boardDemension);
 
@@ -233,7 +265,7 @@ int main(void) {
     printBoard(board, boardDemension);
 
     // board configuration entry phase
-    printf("Enter board configuration:");
+    printf("Enter board configuration:\n");
     char move[3];
 
     // // loop will terminate if all three inputs are '!'
@@ -248,25 +280,32 @@ int main(void) {
     // prints all avaliable moves for both players
     printValidMoves(board, boardDemension, 'W');
     printValidMoves(board, boardDemension, 'B');
+
+    int row = 0, col = 0;
+
+    int details[8][3], numberOfTargets = 0;
+    int *num = &numberOfTargets;
+
+    char currentPlayer = 'W';
+
+    printf("Enter a move:");
+    scanf(" %c%c%c", &currentPlayer, &col, &row);
+
+    row = row - 'a'; 
+    col = col - 'a'; 
+
+    printf("\n");
+
+   checkValidMove(board, boardDemension, currentPlayer, col, row, num, details);
+    if(numberOfTargets != 0){
+        printf("Valid move.\n");
+        for(int i = 0; i < numberOfTargets; i++){
+            flip(board, boardDemension, currentPlayer, row, col, details[i]);
+        }
+    }else{
+        printf("Invalid move.\n");
+    }
+    printBoard(board, boardDemension);
     return 0;
 }
 #endif // DO NOT DELETE THIS LINE
-
-
-
-
-
-// 4
-// W
-// ba
-// aa
-// ab
-// ac
-// bd
-// ca
-// da
-// cd
-// dd
-// db
-// dc
-// ad
