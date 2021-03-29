@@ -1,42 +1,25 @@
 /*
- * File:        project_reversi_skeleton.c
+ * File:        Reversi.c
  * Author:      APS105H1 Teaching Team
- * Modified by: Derek Chen *
+ * Modified by: * Derek Chen *
  * Student#:    1006751267
- * Date:        Jan 2021
+ * Date:        March 28, 2021
  */
-
-/*
-    TODO: 
-        1. the last step of sample output is wrong, check when input is ad
-        2. need to write the AI
-        3. count player's result and print game result
-*/
-
-
 
 #include "project_reversi_skeleton.h" // DO NOT modify this line
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <time.h>
 
 // Note: You may want to add more function declarations here
 // =========   Function declaration  ==========
 /* None for now */
-void configureBoard(char board[][26], char, char move[3]);
 void initializeBoard(char board[][26], int n);
 void checkValidMove(char board[][26], int boardDemension, char colour, int, int, int *, int details[8][3]);
 void flip(char board[][26], int boardDemension, char colour, int, int, int detail[3]);
 int checkBoard(char board[][26], int boardDemension, char);
-
-// this function configures the board with inputs
-void configureBoard(char board[][26], char colour, char move[3]){
-    char player = colour;
-    int rowIndex = (int) move[0] - 'a', colIndex = (int) move[1] - 'a';
-
-    board[rowIndex][colIndex] = player;
-}
+int numberToFlip(char board[][26], int, char, int, int, int, int);
+int checkScore(char board[][26], int, char);
 
 // this function initializes the board and the initial four center tiles
 void initializeBoard(char board[][26], int n){
@@ -65,27 +48,38 @@ void initializeBoard(char board[][26], int n){
     }
 }
 
+// this function calculates how many tiles to flip, assuming the given direction is valid
+int numberToFlip(char board[][26], int n, char colour, int col, int row, int deltaRow, int deltaCol){
+    int number = 0;
+    for(int i = row + deltaRow, j = col + deltaCol; j < n && j >= 0 && i < n && i >= 0; i += deltaRow, j += deltaCol){
+        if(board[i][j] == colour){
+            return number;
+        }else{
+            number ++;
+        }
+    }
+}
+
+// this function checks if the tile is valid
 void checkValidMove(char board[][26], int boardDemension, char colour, int x, int y, int *num, int details[8][3]){
-    int count = 0, tilesNum;
+    int count = 0, tilesNum = 0;
     for(int i = -1; i <= 1; i ++){
         for(int j = -1; j <= 1; j ++){
             if(!(i == 0 && j == 0)){ // deltaRow and deltaCol cannot both be 0
-                if ((tilesNum = checkLegalInDirection(board, boardDemension, x, y, colour, i, j)) != 0){
+                if (checkLegalInDirection(board, boardDemension, x, y, colour, i, j)){
                     details[count][0] = i;
                     details[count][1] = j;
-                    details[count][2] = tilesNum;
-
-                    count ++;
-
-                    *num = count;
-                    // printf("col: %d, row: %d, tiles: %d\n", i, j, tilesNum);
+                    details[count][2] = numberToFlip(board, boardDemension, colour, y, x, i, j);
+                    
+                    // pointer changes the valid of numberOfTarget outside of the function
+                    *num = ++count;
                 }
             }
         }
     }
 }
 
-
+// this function flips a certain amount of tiles in the given direction
 void flip(char board[][26], int boardDemension, char colour, int x, int y, int detail[3]){
     int tilesToFlip = detail[2];
     for(int i = 0; i <= tilesToFlip; i++){ // i is deltaRow
@@ -97,6 +91,7 @@ void flip(char board[][26], int boardDemension, char colour, int x, int y, int d
     }
 }
 
+// this function checks if the game is over or if the player has no avaliable move
 int checkBoard(char board[][26], int boardDemension, char colour){
     bool hasSpace = false;
     for(int i = 0; i < boardDemension; i++){
@@ -108,17 +103,34 @@ int checkBoard(char board[][26], int boardDemension, char colour){
                 checkValidMove(board, boardDemension, colour, i, j, num, details);
 
                 if(numberOfTargets != 0){
-                    return true;
+                    // this means the player has valid move
+                    return 1;
                 }
             }
         }
     }
 
     if(!hasSpace){
+        // there is no space on board, game ends
         return -1;
+    }else{
+        // given player has no avaliable move
+        return 0;
+    }
+}
+
+// this function calculated the score of given player
+int checkScore(char board[][26], int n, char computerColour){
+    int num = 0;
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            if(board[i][j] == computerColour){
+                num ++;
+            }
+        }
     }
 
-    return 0;
+    return num;
 }
 
 // ========= Function implementation ==========
@@ -188,71 +200,23 @@ bool checkLegalInDirection(char board[][26], int n, int row,
     (void)deltaRow;
     (void)deltaCol;
 
-    int numberToFlip = 0;
-
     char oppositeColour = colour == 'W' ? 'B' : 'W'; // if passed colour is B then W
     // the tile only valid if there is an opposite colour in the immediate adjacent tile
-    bool adjacentOppositeColour = false; 
 
     // checks if the tile in the given direction is within the board
     if(!positionInBounds(n, row + deltaRow, col + deltaCol)){
         return false;
     }
 
-    if(deltaRow != 0){
-        // initializes the col index
-        int j = col + deltaCol;
+    for(int i = row + deltaRow, j = col + deltaCol; j < n && j >= 0 && i < n && i >= 0; i += deltaRow, j += deltaCol){
+        if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){
+            return false;
+        }
 
-        // j needs to increase at the same time as i to unsure it's in the diagonal directgion
-        for(int i = row + deltaRow; i < n && i >= 0; i += deltaRow, j += deltaCol){ 
-            if(deltaCol != 0){ // this is in the diagonal direction
-                if(i == row + deltaRow && j == col + deltaCol){
-                    // check if there is a immediate adjacent opposite colour in the given direction
-                    if(board[i][j] == oppositeColour){ 
-                        adjacentOppositeColour = true;
-                    }else{ // if there is not then no need to continue
-                        return 0;
-                    }
-                }
-
-                if(adjacentOppositeColour){
-                    numberToFlip++;
-                }
-
-                // the given direction is only valid if there is also a player's colour in the end
-                if(board[i][j] == colour && adjacentOppositeColour){
-                    return numberToFlip;
-                }
-            }else{ // deltaCol == 0, this is in the direction of up and down
-                if(i == row + deltaRow){
-                    if(board[i][col] != oppositeColour){
-                        return 0;
-                    }
-                }
-
-                numberToFlip++;
-
-                if(board[i][col] == colour){
-                    return numberToFlip;
-                }
-            }
-        }    
-    }else{ // in the direction of left or right
-        for(int j = col + deltaCol; j < n && j >= 0; j += deltaCol){
-            if(j == col + deltaCol){
-                if(board[row][j] != oppositeColour){
-                    return 0;
-                }
-            }
-
-            numberToFlip++;
-
-            if(board[row][j] == colour){
-                return numberToFlip;
-            }
+        if(board[i][j] == colour){
+            return true;
         }
     }
-
     // just in case everything fails
     return 0;             
 }
@@ -270,11 +234,64 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) {
     (void)row;
     (void)col;
 
-    printf("Enter move for colour %c (RowCol):", turn);
-    scanf(" %c%c", col, row);
+    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
 
-    *row = *row - 'a'; 
-    *col = *col - 'a'; 
+    // check all avaliable moves
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            if(board[row][col] == 'U'){ // only checks if the tile is not occupied
+                bool checked = false; // the same tile can only be printed once 
+                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
+                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
+                        if(!(deltaRow == 0 && deltaCol == 0)){ // deltaRow and deltaCol cannot both be 0
+                            char oppositeColour = turn == 'W' ? 'B' : 'W';
+                            int number = 0;
+
+                            // if the first tile in the direction is out of the board then skip
+                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){
+                                continue;
+                            }
+
+                            for(int i = row + deltaRow, j = col + deltaCol; j < n && j >= 0 && i < n && i >= 0; i += deltaRow, j += deltaCol){
+                                // if the first tile in the direction is not the opposite color then skip
+                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){
+                                    break;
+                                }
+
+                                // number of tiles to flip increases by one 
+                                number++;
+
+                                if(board[i][j] == turn){
+                                    // if the number of tiles to flip is larger than previous higest
+                                    // update highest
+                                    if(number > highest){
+                                        // if the row index is less then previous lowest, update
+                                        if(row < lowestRow){
+                                            // if the row index is less then previous lowest, update
+                                            if(col < lowestCol){
+                                                // only the tile the most tiles to flip, lowest row and col index will be picked        
+                                                result[0] = row;
+                                                result[1] = col;
+                                                result[2] = number;
+                                                highest = number;
+                                                lowestRow = row;
+                                                lowestCol = col;
+                                                // break out, stop this iteration, check next tile on the board
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    *row = result[1];
+    *col = result[0];
 
     return 0;
 }
@@ -299,51 +316,66 @@ int main(void) {
     // prints board
     printBoard(board, boardDemension);
 
-    char move[2];
     while(!gameFinished){
         int row = 0, col = 0;
-        int *rowPointer = &row;
-        int *colPointer = &col;
-
         int details[8][3], numberOfTargets = 0;
         int *num = &numberOfTargets;
 
         if(checkBoard(board, boardDemension, currentPlayer) == 0){
+            // if the current player has no valid move, skip, let the opponent move
             printf("%c player has no valid move.\n", currentPlayer);
             currentPlayer = currentPlayer == 'B' ? 'W' : 'B';
             continue;
         }else if(checkBoard(board, boardDemension, currentPlayer) == -1){
+            // if there is no space on board, ends game
             gameFinished = true;
             continue;
         }
 
-        makeMove(board, boardDemension, currentPlayer, rowPointer, colPointer);
+        if(currentPlayer == computerColour){
+            // if the current player is computer 
+            makeMove(board, boardDemension, computerColour, &row, &col);
+            printf("Computer places W at %c%c.\n", col + 'a', row + 'a');
+        }else{
+            printf("Enter move for colour %c (RowCol):", currentPlayer);
+            scanf(" %c%c", &col, &row);
+
+            col = col - 'a';
+            row = row - 'a';
+        }
 
         checkValidMove(board, boardDemension, currentPlayer, col, row, num, details);
 
+        // one tile may have multiple lanes to flip, flip all of them
         if(numberOfTargets != 0){
             for(int i = 0; i < numberOfTargets; i++){
                 flip(board, boardDemension, currentPlayer, row, col, details[i]);
             }
         }else{
-            // printf("Invalid move.\n");
+            // if the player input an invalid move, game ends computer wins
+            printf("Invalid move.\n");
+            gameFinished == true;
+            printf("%c player wins.", currentPlayer == 'W' ? 'B' : 'W');
+            return 0;
         }
 
         printBoard(board, boardDemension);
         
+        // change current player to next player
         currentPlayer = currentPlayer == 'B' ? 'W' : 'B';
-
-        // configureBoard(board, currentPlayer, move);
-
-        // printBoard(board, boardDemension);
     }
+    
+    // calculate score of computer
+    int score = checkScore(board, boardDemension, computerColour);
 
-    // prints all avaliable moves for both players
-    // printValidMoves(board, boardDemension, 'W');
-    // printValidMoves(board, boardDemension, 'B');
+    if(score > boardDemension * boardDemension - score){
+        printf("%c player wins.", computerColour);
+    }else if(score < boardDemension * boardDemension - score){
+        printf("%c player wins.", computerColour == 'W' ? 'B' : 'W');
+    }else{
+        printf("tie.");
+    }
     
     return 0;
-
-    // printf("%d%d\n", row, col);
 }
 #endif // DO NOT DELETE THIS LINE

@@ -97,6 +97,7 @@ void checkValidMove(char board[][26], int boardDemension, char colour, int x, in
     }
 }
 
+// this function flips a certain amount of tile from the given tile in the given direction
 void flip(char board[][26], int boardDemension, char colour, int x, int y, int detail[3]){
     int tilesToFlip = detail[2];
     for(int i = 0; i <= tilesToFlip; i++){ // i is deltaRow
@@ -119,12 +120,15 @@ void printBoard(char board[][26], int n) {
     (void)n;
 
     char initial = 'a';
+
     // prints the first row: column indexes
     for(int i = 0; i <= n; i++){
         if(i == 0){
             printf("  ");
         }else{
             printf("%c", initial);
+
+            // increase the letter based on ASCII
             initial++;
         }
     }
@@ -284,10 +288,14 @@ int main(void) {
     int row = 0, col = 0;
 
     int details[8][3], numberOfTargets = 0;
+
+    // the value of numberOfTargets will be changed within the function
+    // checkValidMove, so declearing a pointer is necessary
     int *num = &numberOfTargets;
 
     char currentPlayer = 'W';
 
+    // prompts the user for a move
     printf("Enter a move:");
     scanf(" %c%c%c", &currentPlayer, &col, &row);
 
@@ -296,7 +304,9 @@ int main(void) {
 
     printf("\n");
 
-   checkValidMove(board, boardDemension, currentPlayer, col, row, num, details);
+    checkValidMove(board, boardDemension, currentPlayer, col, row, num, details);
+
+    // if there are tiles to flip then flip
     if(numberOfTargets != 0){
         printf("Valid move.\n");
         for(int i = 0; i < numberOfTargets; i++){
@@ -305,6 +315,8 @@ int main(void) {
     }else{
         printf("Invalid move.\n");
     }
+
+    // prints the final board
     printBoard(board, boardDemension);
     return 0;
 }
