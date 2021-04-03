@@ -20,7 +20,6 @@ void flip(char board[][26], int boardDemension, char colour, int, int, int detai
 int checkBoard(char board[][26], int boardDemension, char);
 int numberToFlip(char board[][26], int, char, int, int, int, int);
 int checkScore(char board[][26], int, char);
-void makeSmarterMove(const char board[][26], int, char, int *, int *, int, int);
 
 // this function initializes the board and the initial four center tiles
 void initializeBoard(char board[][26], int n){
@@ -302,38 +301,6 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) { /
     return 0;
 }
 
-int checkNumber(const char board[26][26], int n, char turn, int row, int col){
-    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
-    char oppositeColour = turn == 'W' ? 'B' : 'W';
-    int ori = 0, number = 0;
-    for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
-        for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
-            if(!(deltaRow == 0 && deltaCol == 0)){ 
-                if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
-                    continue;
-                }
-                for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
-                    if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
-                        break;
-                    }
-                    
-                    if(board[i][j] == 'U'){
-                        number = 0;
-                        break;
-                    }else if(board[i][j] == oppositeColour){
-                        number++;
-                    }
-                    if(board[i][j] == turn){
-                        ori += number;
-                        number = 0;
-                    }
-                }
-            }
-        }
-    }
-    return ori;
-}
-
 typedef struct nodes{
     int row;
     int col;
@@ -345,11 +312,37 @@ typedef struct linkedLists{
     node *head;
 } linkedList;
 
-bool isEmpty(linkedList *list){
-    if(list->head == NULL){
-        return true;
+void traverse(linkedList *list, int *row, int *col){
+    nodePtr temp = list->head;
+    int highest = 0;
+    int result[3];
+    int lowestRow = 26, lowestCol = 26;
+    while(temp != NULL){
+        // do something
+        if(temp->score > highest){
+            result[0] = temp->row;
+            result[1] = temp->col;
+            result[2] = temp->score;
+            highest = temp->score;
+            lowestRow = temp->row;
+            lowestCol = temp->col;
+        }else if(temp->score == highest){
+            if(temp->row <= lowestRow){
+                if(temp->col < lowestCol){
+                    result[0] = temp->row;
+                    result[1] = temp->col;
+                    result[2] = temp->score;
+                    highest = temp->score;
+                    lowestRow = temp->row;
+                    lowestCol = temp->col;
+                }
+            }
+        }
+        temp = temp->link;
     }
-    return false;
+    *row = result[0];
+    *col = result[1];
+    // printf("%d %d %d\n", result[0],result[1],result[2]);
 }
 
 node *createNode(int row, int col, int score){
@@ -363,26 +356,131 @@ node *createNode(int row, int col, int score){
     return new;
 }
 
-bool insertAtBack(linkedList *list, int row, int col, int score){
-    nodePtr n = list->head;
-
-    while(n->link != NULL){
-        n = n->link;
+bool insertAtFront(linkedList *list, int row, int col, int score){
+    if(list->head == NULL){
+        list->head = createNode(row, col, score);
+        return list->head != NULL;
     }
-
-    n->link = createNode(row, col, score);
-    if(n->link == NULL){
+    node *temp = createNode(row, col, score);
+    if(temp == NULL){
         return false;
     }
+
+    temp->link = list->head;
+    list->head = temp;
+    
     return true;
 }
 
-void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *col, int numOfRec, int prevScore){
+void copyBoard(const char board[][26], char boardCopy[][26], int n){
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            boardCopy[i][j] = board[i][j];
+        }
+    }
+}
+
+int predictionMove(const char board[26][26], int n, char turn, int *row, int *col, int *s, int details[][3]) { // turn = W; n = 8
+    (void)board;
+    (void)n;
+    (void)turn;
+    (void)row;
+    (void)col;
+
+    int result[4] = {}, highest = 0, lowestRow = n, lowestCol = n;
+    char oppositeColour = turn == 'W' ? 'B' : 'W';
+    int temp[8][2];
+    int temp1[8][2];
+
+    int numOfLanesO;
+
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            if(board[row][col] == 'U'){
+                int number = 0, ori = 0;
+                int numOfLanes = 0;
+                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
+                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
+                        if(!(deltaRow == 0 && deltaCol == 0)){ 
+                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
+                                continue;
+                            }
+                            for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+                                    break;
+                                }
+                                
+                                if(board[i][j] == 'U'){
+                                    number = 0;
+                                    break;
+                                }else if(board[i][j] == oppositeColour){
+                                    number++;
+                                }
+                                if(board[i][j] == turn){
+                                    ori += number;
+                                    result[0] = row;
+                                    result[1] = col;
+                                    result[2] = number;
+                                    
+                                    temp[numOfLanes][0] = deltaRow;
+                                    temp[numOfLanes][1] = deltaCol;
+
+                                    // printf("%d%d\n",temp[0][0], temp[0][1]);
+                                    numOfLanes ++;
+                                    number = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                if(ori > highest){
+                    result[0] = row;
+                    result[1] = col;
+                    result[2] = ori;
+                    highest = ori;
+                    lowestRow = row;
+                    lowestCol = col;
+                    numOfLanesO = numOfLanes;
+                    // printf("%d%d\n",temp[0][0], temp[0][1]);
+                    // printf("%d%d\n",temp1[0][0], temp1[0][1]);
+                    copyBoard(temp, temp1, numOfLanes);
+                    continue;
+                }else if(ori == highest){
+                    if(row <= lowestRow){
+                        if(col < lowestCol){
+                            result[0] = row;
+                            result[1] = col;
+                            result[2] = ori;
+                            highest = ori;
+                            lowestRow = row;
+                            lowestCol = col;
+                            numOfLanesO = numOfLanes;
+                            // printf("%d%d\n",temp[0][0], temp[0][1]);
+                            // printf("%d%d\n",temp1[0][0], temp1[0][1]);
+                            copyBoard(temp, temp1, numOfLanes);
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    *row = result[0];
+    *col = result[1];
+    *s = result[2];
+
+    copyBoard(temp1, details, numOfLanesO);
+    // printf("%d%d\n",details[0][0], details[0][1]);
+    
+    return numOfLanesO;
+}
+
+void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *col){
     int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
     char oppositeColour = turn == 'W' ? 'B' : 'W';
-    if(numOfRec == 3){
-        return prevScore;
-    }
+    linkedList moves;
+    moves.head = NULL;
 
     for(int row = 0; row < n; row++){
         for(int col = 0; col < n; col++){
@@ -408,7 +506,30 @@ void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *
                                 if(board[i][j] == turn){
                                     ori += number;
                                     number = 0;
-                                    makeSmarterMove();
+
+                                    for(int step = 0; step < 3; step++){
+                                        int nextRow, nextCol, nextScore, lanes;
+                                        int details[8][2];
+                                        char boardCopy[26][26];
+                                        
+                                        copyBoard(board, boardCopy, n);
+                                        
+                                        lanes = predictionMove(boardCopy, n, oppositeColour, &nextRow, &nextCol, &nextScore, details);
+                                        
+                                        // printf("turn, row, col: %c %d %d\n", turn, row, col);
+                                        // printf("op, nr, nc, l, ns: %c %d %d %d %d\n", oppositeColour, nextRow, nextCol, lanes, nextScore);
+
+                                        for(int i = 0; i < lanes; i++){
+                                            // printf("details: %d %d\n", details[i][0],details[i][1]);
+                                            flip(boardCopy, n, oppositeColour, nextCol, nextRow, details[i]);
+                                        }
+                                        
+                                        predictionMove(boardCopy, n, turn, &nextRow, &nextCol, &nextScore, details);
+                                        
+                                        ori += nextScore;
+
+                                    }
+                                    insertAtFront(&moves, row, col, ori);
                                 }
                             }
                         }
@@ -418,11 +539,8 @@ void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *
         }
     }
 
-    *row = result[0];
-    *col = result[1];
-
-    return 0;
-}
+    traverse(&moves, row, col);
+};
 
 #ifndef COMPETE_MODE // DO NOT DELETE THIS LINE
 int main(void) {
@@ -434,7 +552,7 @@ int main(void) {
     bool bPlayerNoMove = false;
 
     linkedList possibleMoves;
-    lists.head = NULL;
+    possibleMoves.head = NULL;
 
     printf("Enter the board dimension: ");
     // scanf leaves newline in the buffer; solution is to put a whitespace before %
@@ -479,7 +597,9 @@ int main(void) {
             makeMove(board, boardDemension, computerColour, &col, &row);
             printf("Computer1 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
         }else{
-            makeSmarterMove(board, boardDemension, currentPlayer, &col, &row, 0, 0);
+            // makeMove(board, boardDemension, currentPlayer, &col, &row);
+            // int col1, row1;
+            makeSmarterMove(board, boardDemension, currentPlayer, &col, &row);
             printf("Computer2 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
         }
 

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "stdlib.h": "c",
-        "project_reversi_skeleton.h": "c"
+        "project_reversi_skeleton.h": "c",
+        "type_traits": "c"
     }
 }

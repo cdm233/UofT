@@ -25,7 +25,9 @@ note:
 #include <string.h>
 
 typedef struct nodes{
-    int data;
+    int row;
+    int col;
+    int score;
     struct nodes *link;
 } node, *nodePtr;
 
@@ -37,34 +39,28 @@ void traverse(linkedList *list){
     nodePtr temp = list->head;
     while(temp != NULL){
         // do something
-        printf("%d\n",temp->data);
+        printf("%d %d %d\n", temp->row,temp->col,temp->score);
         temp = temp->link;
     }
 }
 
-bool isEmpty(linkedList *list){
-    if(list->head == NULL){
-        return true;
-    }
-    return false;
-}
-
-node *createNode(int value){
+node *createNode(int row, int col, int score){
     node *new = (node*) malloc(sizeof(node));
     if(new != NULL){
-        new->data = value;
+        new->row = row;
+        new->col = col;
+        new->score = score;
         new->link = NULL;
     }
     return new;
 }
 
-bool insertAtFront(linkedList *list, int value){
-    if(isEmpty(list)){
-        list->head = createNode(value);
+bool insertAtFront(linkedList *list, int row, int col, int score){
+    if(list->head == NULL){
+        list->head = createNode(row, col, score);
         return list->head != NULL;
     }
-
-    node *temp = createNode(value);
+    node *temp = createNode(row, col, score);
     if(temp == NULL){
         return false;
     }
@@ -75,74 +71,81 @@ bool insertAtFront(linkedList *list, int value){
     return true;
 }
 
-bool insertAtBack(linkedList *list, int value){
-    if(isEmpty(list)){
-        return insertAtFront(list, value);
+bool isEmpty(linkedList *list){
+    if(list->head == NULL){
+        return true;
     }
-    node *n = list->head;
-
-    while(n->link != NULL){
-        n = n->link;
-    }
-
-    n->link = createNode(value);
-    if(n->link == NULL){
-        return false;
-    }
-    return true;
+    return false;
 }
 
-void deleteFront(linkedList *list){
-    if(isEmpty(list)){
-        return;
-    }
+// bool insertAtBack(linkedList *list, int value){
+//     if(isEmpty(list)){
+//         return insertAtFront(list, value);
+//     }
+//     node *n = list->head;
 
-    node *new = list->head->link;
+//     while(n->link != NULL){
+//         n = n->link;
+//     }
 
-    free(list->head);
-    list->head = new;
-}
+//     n->link = createNode(value);
+//     if(n->link == NULL){
+//         return false;
+//     }
+//     return true;
+// }
 
-void deleteBack(linkedList *list){
-    if(isEmpty(list)){
-        return;
-    }
-    if(list->head->link == NULL){
-        deleteFront(list);
-        return;
-    }
+// void deleteFront(linkedList *list){
+//     if(isEmpty(list)){
+//         return;
+//     }
 
-    node *temp = list->head;
-    node *back = list->head;
+//     node *new = list->head->link;
 
-    while(temp->link != NULL){
-        temp = temp->link;
-        if(temp->link != NULL){
-            back = back->link;
-        }
-    }
+//     free(list->head);
+//     list->head = new;
+// }
 
-    free(temp);
-    back->link = NULL;
-}
+// void deleteBack(linkedList *list){
+//     if(isEmpty(list)){
+//         return;
+//     }
+//     if(list->head->link == NULL){
+//         deleteFront(list);
+//         return;
+//     }
 
-int deleteAllNode(linkedList *list){
-    int num = 0;
-    while(!isEmpty(list)){
-        deleteFront(list);
-        num++;
-    }
-    list->head = NULL;
-    return num;
-}
+//     node *temp = list->head;
+//     node *back = list->head;
+
+//     while(temp->link != NULL){
+//         temp = temp->link;
+//         if(temp->link != NULL){
+//             back = back->link;
+//         }
+//     }
+
+//     free(temp);
+//     back->link = NULL;
+// }
+
+// int deleteAllNode(linkedList *list){
+//     int num = 0;
+//     while(!isEmpty(list)){
+//         deleteFront(list);
+//         num++;
+//     }
+//     list->head = NULL;
+//     return num;
+// }
 
 // recursive version of traverse
-void printList(node *node){
-    if(node != NULL){
-        printf("%d",node->data);
-        printList(node->link);
-    }
-}
+// void printList(node *node){
+//     if(node != NULL){
+//         printf("%d",node->data);
+//         printList(node->link);
+//     }
+// }
 
 // binary search only for sorted array
 int binarySearch(int list[], int listLength, int target){
@@ -164,10 +167,12 @@ int main(void) {
     linkedList lists;
     lists.head = NULL;
 
-    insertAtFront(&lists, 1);
-    insertAtFront(&lists, 2);
-    insertAtFront(&lists, 3);
+    insertAtFront(&lists, 0, 1, 1);
+    insertAtFront(&lists, 1, 0, 1);
+    insertAtFront(&lists, 3, 2, 1);
     
+    traverse(&lists);
+
     int a[] = {1,2,3,4,6,8,9,12,16,19,21,24,26,27,29,30};
 
     int l = sizeof(a)/sizeof(int);
