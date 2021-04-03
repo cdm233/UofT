@@ -20,6 +20,7 @@ void flip(char board[][26], int boardDemension, char colour, int, int, int detai
 int checkBoard(char board[][26], int boardDemension, char);
 int numberToFlip(char board[][26], int, char, int, int, int, int);
 int checkScore(char board[][26], int, char);
+void makeSmarterMove(const char board[][26], int, char, int *, int *, int, int);
 
 // this function initializes the board and the initial four center tiles
 void initializeBoard(char board[][26], int n){
@@ -208,8 +209,12 @@ bool checkLegalInDirection(char board[][26], int n, int row,
         return false;
     }
 
-    for(int i = row + deltaRow, j = col + deltaCol; j < n && j >= 0 && i < n && i >= 0; i += deltaRow, j += deltaCol){
-        if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){
+    for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+        if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+            return false;
+        }
+
+        if(board[i][j] == 'U'){
             return false;
         }
 
@@ -297,12 +302,139 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) { /
     return 0;
 }
 
+int checkNumber(const char board[26][26], int n, char turn, int row, int col){
+    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
+    char oppositeColour = turn == 'W' ? 'B' : 'W';
+    int ori = 0, number = 0;
+    for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
+        for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
+            if(!(deltaRow == 0 && deltaCol == 0)){ 
+                if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
+                    continue;
+                }
+                for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+                    if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+                        break;
+                    }
+                    
+                    if(board[i][j] == 'U'){
+                        number = 0;
+                        break;
+                    }else if(board[i][j] == oppositeColour){
+                        number++;
+                    }
+                    if(board[i][j] == turn){
+                        ori += number;
+                        number = 0;
+                    }
+                }
+            }
+        }
+    }
+    return ori;
+}
+
+typedef struct nodes{
+    int row;
+    int col;
+    int score;
+    struct nodes *link;
+} node, *nodePtr;
+
+typedef struct linkedLists{
+    node *head;
+} linkedList;
+
+bool isEmpty(linkedList *list){
+    if(list->head == NULL){
+        return true;
+    }
+    return false;
+}
+
+node *createNode(int row, int col, int score){
+    node *new = (node*) malloc(sizeof(node));
+    if(new != NULL){
+        new->row = row;
+        new->col = col;
+        new->score = score;
+        new->link = NULL;
+    }
+    return new;
+}
+
+bool insertAtBack(linkedList *list, int row, int col, int score){
+    nodePtr n = list->head;
+
+    while(n->link != NULL){
+        n = n->link;
+    }
+
+    n->link = createNode(row, col, score);
+    if(n->link == NULL){
+        return false;
+    }
+    return true;
+}
+
+void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *col, int numOfRec, int prevScore){
+    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
+    char oppositeColour = turn == 'W' ? 'B' : 'W';
+    if(numOfRec == 3){
+        return prevScore;
+    }
+
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            if(board[row][col] == 'U'){
+                int number = 0, ori = 0;
+                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
+                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
+                        if(!(deltaRow == 0 && deltaCol == 0)){ 
+                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
+                                continue;
+                            }
+                            for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+                                    break;
+                                }
+                                
+                                if(board[i][j] == 'U'){
+                                    number = 0;
+                                    break;
+                                }else if(board[i][j] == oppositeColour){
+                                    number++;
+                                }
+                                if(board[i][j] == turn){
+                                    ori += number;
+                                    number = 0;
+                                    makeSmarterMove();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    *row = result[0];
+    *col = result[1];
+
+    return 0;
+}
+
 #ifndef COMPETE_MODE // DO NOT DELETE THIS LINE
 int main(void) {
     // Complete your main function here
     int boardDemension, gameFinished = false;
     char board[26][26], computerColour; // board initialized as 26 by 26 static array
     char currentPlayer = 'B';
+    bool wPlayerNoMove = false;
+    bool bPlayerNoMove = false;
+
+    linkedList possibleMoves;
+    lists.head = NULL;
 
     printf("Enter the board dimension: ");
     // scanf leaves newline in the buffer; solution is to put a whitespace before %
@@ -324,8 +456,17 @@ int main(void) {
 
         if(checkBoard(board, boardDemension, currentPlayer) == 0){
             // if the current player has no valid move, skip, let the opponent move
-            printf("%c player has no valid move.\n", currentPlayer);
+            if(currentPlayer == 'W'){
+                wPlayerNoMove = true;
+            }else{
+                bPlayerNoMove = true;
+            }
+            if(bPlayerNoMove && wPlayerNoMove){
+                gameFinished = true;
+                continue;
+            }
             currentPlayer = currentPlayer == 'B' ? 'W' : 'B';
+            printf("%c player has no valid move.\n", currentPlayer);
             continue;
         }else if(checkBoard(board, boardDemension, currentPlayer) == -1){
             // if there is no space on board, ends game
@@ -336,13 +477,10 @@ int main(void) {
         if(currentPlayer == computerColour){
             // if the current player is computer 
             makeMove(board, boardDemension, computerColour, &col, &row);
-            printf("Computer places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
+            printf("Computer1 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
         }else{
-            printf("Enter move for colour %c (RowCol): ", currentPlayer);
-            scanf(" %c%c", &col, &row);
-
-            col = col - 'a';
-            row = row - 'a';
+            makeSmarterMove(board, boardDemension, currentPlayer, &col, &row, 0, 0);
+            printf("Computer2 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
         }
 
         checkValidMove(board, boardDemension, currentPlayer, col, row, num, details);

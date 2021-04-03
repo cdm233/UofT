@@ -5,7 +5,6 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/Headers",
-                "${workspaceFolder}/Lab7/**"
             ],
             "defines": [
                 "_DEBUG",

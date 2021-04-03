@@ -208,8 +208,12 @@ bool checkLegalInDirection(char board[][26], int n, int row,
         return false;
     }
 
-    for(int i = row + deltaRow, j = col + deltaCol; j < n && j >= 0 && i < n && i >= 0; i += deltaRow, j += deltaCol){
-        if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){
+    for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+        if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+            return false;
+        }
+
+        if(board[i][j] == 'U'){
             return false;
         }
 
@@ -303,6 +307,8 @@ int main(void) {
     int boardDemension, gameFinished = false;
     char board[26][26], computerColour; // board initialized as 26 by 26 static array
     char currentPlayer = 'B';
+    bool wPlayerNoMove = false;
+    bool bPlayerNoMove = false;
 
     printf("Enter the board dimension: ");
     // scanf leaves newline in the buffer; solution is to put a whitespace before %
@@ -324,8 +330,17 @@ int main(void) {
 
         if(checkBoard(board, boardDemension, currentPlayer) == 0){
             // if the current player has no valid move, skip, let the opponent move
-            printf("%c player has no valid move.\n", currentPlayer);
+            if(currentPlayer == 'W'){
+                wPlayerNoMove = true;
+            }else{
+                bPlayerNoMove = true;
+            }
+            if(bPlayerNoMove && wPlayerNoMove){
+                gameFinished = true;
+                continue;
+            }
             currentPlayer = currentPlayer == 'B' ? 'W' : 'B';
+            printf("%c player has no valid move.\n", currentPlayer);
             continue;
         }else if(checkBoard(board, boardDemension, currentPlayer) == -1){
             // if there is no space on board, ends game
