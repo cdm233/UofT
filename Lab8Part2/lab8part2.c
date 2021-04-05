@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "lab8part2lib.h"
+#include "liblab8part2.a"
 
 // Note: You may want to add more function declarations here
 // =========   Function declaration  ==========
@@ -27,17 +29,17 @@ void initializeBoard(char board[][26], int n){
         for(int j = 0; j < n; j++){
             if(i + 1 == n/2){ // the upper middle row
                 if(i * j == (n-2) * (n-2) / 4){
-                    board[i][j] = 'W';
-                }else if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
                     board[i][j] = 'B';
+                }else if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'W';
                 }else{
                     board[i][j] = 'U';
                 }
             }else if(i == n/2){ // the lower middle row
                 if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
-                    board[i][j] = 'B';
-                }else if(i * j == ((n-2) / 2 + 1) * ((n-2) / 2 + 1)){
                     board[i][j] = 'W';
+                }else if(i * j == ((n-2) / 2 + 1) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'B';
                 }else{
                     board[i][j] = 'U';
                 }
@@ -304,7 +306,7 @@ int makeMove(const char board[26][26], int n, char turn, int *row, int *col) { /
 typedef struct nodes{
     int row;
     int col;
-    int score;
+    double score;
     struct nodes *link;
 } node, *nodePtr;
 
@@ -312,17 +314,28 @@ typedef struct linkedLists{
     node *head;
 } linkedList;
 
+void printList(linkedList *list){
+    nodePtr temp = list->head;
+    int number = 0;
+    while(temp != NULL){
+        printf("%dth node: %c%c%lf\n", number, temp->row + 'a', temp->col + 'a', temp->score);
+        number++;
+        temp = temp->link;
+    }
+}
+
 void traverse(linkedList *list, int *row, int *col){
     nodePtr temp = list->head;
     int highest = 0;
-    int result[3];
+    int result[2];
+    double score = 0.0;
     int lowestRow = 26, lowestCol = 26;
     while(temp != NULL){
         // do something
         if(temp->score > highest){
             result[0] = temp->row;
             result[1] = temp->col;
-            result[2] = temp->score;
+            score = temp->score;
             highest = temp->score;
             lowestRow = temp->row;
             lowestCol = temp->col;
@@ -331,7 +344,7 @@ void traverse(linkedList *list, int *row, int *col){
                 if(temp->col < lowestCol){
                     result[0] = temp->row;
                     result[1] = temp->col;
-                    result[2] = temp->score;
+                    score = temp->score;
                     highest = temp->score;
                     lowestRow = temp->row;
                     lowestCol = temp->col;
@@ -342,10 +355,11 @@ void traverse(linkedList *list, int *row, int *col){
     }
     *row = result[0];
     *col = result[1];
-    // printf("%d %d %d\n", result[0],result[1],result[2]);
+    // printf("%.2lf\n"s,score);
+    // printf("%c %c %.2lf\n", result[0] + 'a',result[1] + 'a', score);
 }
 
-node *createNode(int row, int col, int score){
+node *createNode(int row, int col, double score){
     node *new = (node*) malloc(sizeof(node));
     if(new != NULL){
         new->row = row;
@@ -356,7 +370,7 @@ node *createNode(int row, int col, int score){
     return new;
 }
 
-bool insertAtFront(linkedList *list, int row, int col, int score){
+bool insertAtFront(linkedList *list, int row, int col, double score){
     if(list->head == NULL){
         list->head = createNode(row, col, score);
         return list->head != NULL;
@@ -380,25 +394,16 @@ void copyBoard(const char board[][26], char boardCopy[][26], int n){
     }
 }
 
-int predictionMove(const char board[26][26], int n, char turn, int *row, int *col, int *s, int details[][3]) { // turn = W; n = 8
-    (void)board;
-    (void)n;
-    (void)turn;
-    (void)row;
-    (void)col;
-
-    int result[4] = {}, highest = 0, lowestRow = n, lowestCol = n;
+double selfPrediction(const char board[][26], int n, char turn, int* selfRow, int* selfCol){
+    double avg = 0.0, total = 0.0;
     char oppositeColour = turn == 'W' ? 'B' : 'W';
-    int temp[8][2];
-    int temp1[8][2];
-
-    int numOfLanesO;
-
+    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
+    
     for(int row = 0; row < n; row++){
         for(int col = 0; col < n; col++){
             if(board[row][col] == 'U'){
                 int number = 0, ori = 0;
-                int numOfLanes = 0;
+                bool valid = false;
                 for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
                     for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
                         if(!(deltaRow == 0 && deltaCol == 0)){ 
@@ -418,65 +423,144 @@ int predictionMove(const char board[26][26], int n, char turn, int *row, int *co
                                 }
                                 if(board[i][j] == turn){
                                     ori += number;
-                                    result[0] = row;
-                                    result[1] = col;
-                                    result[2] = number;
-                                    
-                                    temp[numOfLanes][0] = deltaRow;
-                                    temp[numOfLanes][1] = deltaCol;
-
-                                    // printf("%d%d\n",temp[0][0], temp[0][1]);
-                                    numOfLanes ++;
                                     number = 0;
+                                    valid = true;
                                 }
                             }
                         }
                     }
                 }
-                if(ori > highest){
-                    result[0] = row;
-                    result[1] = col;
-                    result[2] = ori;
-                    highest = ori;
-                    lowestRow = row;
-                    lowestCol = col;
-                    numOfLanesO = numOfLanes;
-                    // printf("%d%d\n",temp[0][0], temp[0][1]);
-                    // printf("%d%d\n",temp1[0][0], temp1[0][1]);
-                    copyBoard(temp, temp1, numOfLanes);
-                    continue;
-                }else if(ori == highest){
-                    if(row <= lowestRow){
-                        if(col < lowestCol){
-                            result[0] = row;
-                            result[1] = col;
-                            result[2] = ori;
-                            highest = ori;
-                            lowestRow = row;
-                            lowestCol = col;
-                            numOfLanesO = numOfLanes;
-                            // printf("%d%d\n",temp[0][0], temp[0][1]);
-                            // printf("%d%d\n",temp1[0][0], temp1[0][1]);
-                            copyBoard(temp, temp1, numOfLanes);
-                            continue;
+                if(valid){
+                    avg += (double) ori;
+                    total += 1.0;
+                    if(ori > highest){
+                        result[0] = row;
+                        result[1] = col;
+                        result[2] = ori;
+                        highest = ori;
+                        lowestRow = row;
+                        lowestCol = col;
+                        continue;
+                    }else if(ori == highest){
+                        if(row <= lowestRow){
+                            if(col < lowestCol){
+                                result[0] = row;
+                                result[1] = col;
+                                result[2] = ori;
+                                highest = ori;
+                                lowestRow = row;
+                                lowestCol = col;
+                                continue;
+                            }
                         }
                     }
                 }
             }
         }
     }
+    avg /= total;
 
-    *row = result[0];
-    *col = result[1];
-    *s = result[2];
-
-    copyBoard(temp1, details, numOfLanesO);
-    // printf("%d%d\n",details[0][0], details[0][1]);
-    
-    return numOfLanesO;
+    *selfRow = result[0];
+    *selfCol = result[1];
+    return avg;
 }
 
-void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *col){
+double oppPrediction(const char board[][26], int n, char turn, linkedList *predictedMoves){
+    char oppositeColour = turn == 'W' ? 'B' : 'W';
+    double avg = 0;
+    double num = 0;
+
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            if(board[row][col] == 'U'){
+                int number = 0, ori = 0;
+                bool valid = false;
+                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
+                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
+                        if(!(deltaRow == 0 && deltaCol == 0)){ 
+                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
+                                continue;
+                            }
+                            for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+                                    break;
+                                }
+                                
+                                if(board[i][j] == 'U'){
+                                    number = 0;
+                                    break;
+                                }else if(board[i][j] == oppositeColour){
+                                    number++;
+                                }
+                                if(board[i][j] == turn){
+                                    ori += number;
+                                    number = 0;
+                                    valid = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                if(valid){
+                    insertAtFront(predictedMoves, row, col, ori);
+                    avg += (double) ori;
+                    num += 1.0;
+                    // printf("ori: %d avg: %0.2lf\n", ori, avg);
+                    // printf("%d",avg);
+                }
+            }
+        }
+    }
+    return avg/num;
+}
+
+void sFlip(char board[][26], int n, char turn, int row, int col){
+    char oppositeColour = turn == 'W' ? 'B' : 'W';
+    int m = 0;
+    int details[8][3];
+    for(int dr = -1; dr <= 1; dr ++){
+        for(int dc = -1; dc <= 1; dc ++){
+            if(!(dr == 0 && dc == 0)){
+                int number = 0;
+                if(!positionInBounds(n, row + dr, col + dc)){ // passed this 
+                    continue;
+                }
+                for(int i = row + dr, j = col + dc; positionInBounds(n, i, j); i += dr, j += dc){
+                    if(i == row + dr && j == col + dc && board[i][j] != oppositeColour){ 
+                        number = 0;
+                        break;
+                    }
+                    
+                    if(board[i][j] == 'U'){
+                        number = 0;
+                        break;
+                    }else if(board[i][j] == oppositeColour){
+                        number++;
+                    }
+                    if(board[i][j] == turn){
+                        // printf("?\n");
+                        details[m][0] = dr;
+                        details[m][1] = dc;
+                        details[m][2] = number;
+                        number = 0;
+                        m++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    int rrow = row, ccol = col;
+    for(int i = 0; i < m; i++){
+        // printf("row,col: %d%d\n", row, col);
+        // printf("deltaRow, deltaCol: %d %d\n",details[i][0],details[i][1]);
+        for(int j = 0; j <= details[i][2]; j++){ // i is deltaRow
+            board[rrow + j*details[i][0]][ccol + j*details[i][1]] = turn;
+        }
+    }
+}
+
+int makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *col){
     int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
     char oppositeColour = turn == 'W' ? 'B' : 'W';
     linkedList moves;
@@ -486,6 +570,7 @@ void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *
         for(int col = 0; col < n; col++){
             if(board[row][col] == 'U'){
                 int number = 0, ori = 0;
+                bool valid = false;
                 for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
                     for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
                         if(!(deltaRow == 0 && deltaCol == 0)){ 
@@ -503,42 +588,94 @@ void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *
                                 }else if(board[i][j] == oppositeColour){
                                     number++;
                                 }
-                                if(board[i][j] == turn){
+                                if(board[i][j] == turn){ // first level of the game tree
                                     ori += number;
                                     number = 0;
-
-                                    for(int step = 0; step < 3; step++){
-                                        int nextRow, nextCol, nextScore, lanes;
-                                        int details[8][2];
-                                        char boardCopy[26][26];
-                                        
-                                        copyBoard(board, boardCopy, n);
-                                        
-                                        lanes = predictionMove(boardCopy, n, oppositeColour, &nextRow, &nextCol, &nextScore, details);
-                                        
-                                        // printf("turn, row, col: %c %d %d\n", turn, row, col);
-                                        // printf("op, nr, nc, l, ns: %c %d %d %d %d\n", oppositeColour, nextRow, nextCol, lanes, nextScore);
-
-                                        for(int i = 0; i < lanes; i++){
-                                            // printf("details: %d %d\n", details[i][0],details[i][1]);
-                                            flip(boardCopy, n, oppositeColour, nextCol, nextRow, details[i]);
-                                        }
-                                        
-                                        predictionMove(boardCopy, n, turn, &nextRow, &nextCol, &nextScore, details);
-                                        
-                                        ori += nextScore;
-
-                                    }
-                                    insertAtFront(&moves, row, col, ori);
+                                    valid = true;
                                 }
                             }
                         }
+                    }
+                }
+                if(valid){
+                    char boardCopy[26][26];
+                    
+                    copyBoard(board, boardCopy, n);
+                    insertAtFront(&moves, row, col, ori);
+
+                    // prediction
+                    sFlip(boardCopy, n, turn, row, col);
+                    for(int step = 0; step < 7; step++){
+                        linkedList predictedMoves;
+                        predictedMoves.head = NULL;
+
+                        // if(step == 6){
+                        //     printf("step6 board: \n");
+                        //     printBoard(boardCopy, n);
+                        // }
+                        
+                        // printf("outsie: flipped: %c%c\n", row + 'a', col + 'a');
+                        // printBoard(boardCopy, n);
+                        
+                        double avg = oppPrediction(boardCopy, n, oppositeColour, &predictedMoves);
+
+                        // printList(&predictedMoves);
+                        // printf("average score: %.2lf\n",avg);
+
+                        nodePtr temp = predictedMoves.head;
+                        
+                        double hi = 0;
+
+                        int tempRow = 0, tempCol = 0, tempSR = 0, tempSC = 0;
+                        while(temp != NULL){
+                            char tempBoard[26][26];
+                            
+                            copyBoard(boardCopy, tempBoard, n);
+                            sFlip(tempBoard, n, oppositeColour, temp->row, temp->col);
+                            
+                            // printf("insie: flipped: %c%c\n", temp->row + 'a', temp->col + 'a');
+                            // printBoard(tempBoard, n);
+
+
+                            double pAvg;
+                            int selfRow = 0, selfCol = 0;
+                            pAvg = selfPrediction(tempBoard, n, turn, &selfRow, &selfCol);
+                            // printf("pAvg score: %.2lf\n",pAvg);
+                            // printf("\n");
+                            // printf("\ntempboard, flipped %c%c:\n",temp->row + 'a', temp->col + 'a');
+                            // printBoard(tempBoard, n);
+                            // printf("\n");
+                            // printf("\n");
+                            temp->score += (pAvg - avg);
+                            if(temp->score > hi){
+                                hi = temp->score;
+                                if(moves.head->link != NULL){
+                                    moves.head->link->score = hi;
+                                    tempRow = temp->row;
+                                    tempCol = temp->col;
+                                    tempSR = selfRow;
+                                    tempSC = selfCol;
+                                }
+                            }
+                            // printf("row: %c, col: %c, avg: %.2lf\n",temp->row + 'a', temp->col + 'a', temp->score);
+                            // if(moves.head->link != NULL){
+                            //     moves.head->link->score = hi;
+                            //     tempRow = temp->row;
+                            //     tempCol = temp->col;
+                            //     tempSR = selfRow;
+                            //     tempSC = selfCol;
+                            // }
+                            temp = temp->link;
+                        }
+                        sFlip(boardCopy, n, oppositeColour, tempRow, tempCol);
+                        sFlip(boardCopy, n, turn, tempSR, tempSC);
                     }
                 }
             }
         }
     }
 
+    // printList(&moves);
     traverse(&moves, row, col);
 };
 
@@ -594,12 +731,20 @@ int main(void) {
 
         if(currentPlayer == computerColour){
             // if the current player is computer 
-            makeMove(board, boardDemension, computerColour, &col, &row);
-            printf("Computer1 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
+            // makeMove(board, boardDemension, computerColour, &col, &row);
+            // printf("Computer1 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
+            
+            printf("Enter move for colour %c (RowCol): ", currentPlayer);
+            scanf(" %c%c", &col, &row);
+
+            col = col - 'a';
+            row = row - 'a';
         }else{
             // makeMove(board, boardDemension, currentPlayer, &col, &row);
-            // int col1, row1;
+            int col1, row1;
             makeSmarterMove(board, boardDemension, currentPlayer, &col, &row);
+
+            // printf("smarter places %c %c\n", col1 + 'a', row1 + 'a');
             printf("Computer2 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
         }
 
@@ -628,9 +773,9 @@ int main(void) {
     int score = checkScore(board, boardDemension, computerColour);
 
     if(score > boardDemension * boardDemension - score){
-        printf("%c player wins.", computerColour);
+        printf("%c player wins(%d:%d).", computerColour, score, boardDemension*boardDemension-score);
     }else if(score < boardDemension * boardDemension - score){
-        printf("%c player wins.", computerColour == 'W' ? 'B' : 'W');
+        printf("%c player wins(%d:%d).", computerColour == 'W' ? 'B' : 'W', score, boardDemension*boardDemension-score);
     }else{
         printf("tie.");
     }

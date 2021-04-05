@@ -171,13 +171,16 @@ int main(void) {
     insertAtFront(&lists, 1, 0, 1);
     insertAtFront(&lists, 3, 2, 1);
     
+    // traverse(&lists);
+
+    lists.head->link->score += 2;
     traverse(&lists);
 
-    int a[] = {1,2,3,4,6,8,9,12,16,19,21,24,26,27,29,30};
+    // int a[] = {1,2,3,4,6,8,9,12,16,19,21,24,26,27,29,30};
 
-    int l = sizeof(a)/sizeof(int);
+    // int l = sizeof(a)/sizeof(int);
 
-    int b = binarySearch(a,l,9);
+    // int b = binarySearch(a,l,9);
 
     // printList(lists.head);
 

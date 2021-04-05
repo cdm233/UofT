@@ -2,6 +2,7 @@
     "files.associations": {
         "stdlib.h": "c",
         "project_reversi_skeleton.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "lab8part2lib.h": "c"
     }
 }

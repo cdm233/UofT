@@ -1,9 +1,7 @@
-#include "project_reversi_skeleton.h" // DO NOT modify this line
+// #include "project_reversi_skeleton.h" // DO NOT modify this line
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-
 
 bool positionInBounds(int n, int row, int col) {
     (void)n;
@@ -16,216 +14,112 @@ bool positionInBounds(int n, int row, int col) {
     return false;  
 }
 
-int makeMove1(const char board[26][26], int n, char turn, int *row, int *col, int *s) { // turn = W; n = 8
-    (void)board;
-    (void)n;
-    (void)turn;
-    (void)row;
-    (void)col;
-
-    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
+void sFlip(char board[][26], int n, char turn, int row, int col){
     char oppositeColour = turn == 'W' ? 'B' : 'W';
-
-    for(int row = 0; row < n; row++){
-        for(int col = 0; col < n; col++){
-            if(board[row][col] == 'U'){
-                int number = 0, ori = 0;
-                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
-                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
-                        if(!(deltaRow == 0 && deltaCol == 0)){ 
-                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
-                                continue;
-                            }
-                            for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
-                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
-                                    break;
-                                }
-                                
-                                if(board[i][j] == 'U'){
-                                    number = 0;
-                                    break;
-                                }else if(board[i][j] == oppositeColour){
-                                    number++;
-                                }
-                                if(board[i][j] == turn){
-                                    ori += number;
-                                    number = 0;
-                                }
-                            }
-                        }
-                    }
-                }
-                if(ori > highest){
-                    result[0] = row;
-                    result[1] = col;
-                    result[2] = ori;
-                    highest = ori;
-                    lowestRow = row;
-                    lowestCol = col;
+    int number = 0, m = 0;
+    int details[8][3];
+    for(int dr = -1; dr <= 1; dr ++){
+        for(int dc = -1; dc <= 1; dc ++){
+            if(!(dr == 0 && dc == 0)){
+                if(!positionInBounds(n, row + dr, col + dc)){ // passed this 
                     continue;
-                }else if(ori == highest){
-                    if(row <= lowestRow){
-                        if(col < lowestCol){
-                            result[0] = row;
-                            result[1] = col;
-                            result[2] = ori;
-                            highest = ori;
-                            lowestRow = row;
-                            lowestCol = col;
-                            continue;
-                        }
+                }
+                if(dr == 1 && dc == 0){
+                    printf(" ");
+                }
+                for(int i = row + dr, j = col + dc; positionInBounds(n, i, j); i += dr, j += dc){
+                    if(i == row + dr && j == col + dc && board[i][j] != oppositeColour){ 
+                        break;
+                    }
+                    
+                    if(board[i][j] == 'U'){
+                        break;
+                    }else if(board[i][j] == oppositeColour){
+                        number++;
+                    }
+                    if(board[i][j] == turn){
+                        // printf("?\n");
+                        details[m][0] = dr;
+                        details[m][1] = dc;
+                        details[m][2] = number;
+                        m++;
+                        break;
                     }
                 }
             }
         }
     }
-
-    *row = result[0];
-    *col = result[1];
-    *s = result[2];
-
-    return 0;
-}
-
-bool checkLegalInDirection(char board[][26], int n, int row,
- 		int col, char colour, int deltaRow, int deltaCol) {
-    (void)board;
-    (void)n;
-    (void)row;
-    (void)col;
-    (void)colour;
-    (void)deltaRow;
-    (void)deltaCol;
-
-    char oppositeColour = colour == 'W' ? 'B' : 'W'; // if passed colour is B then W
-    // the tile only valid if there is an opposite colour in the immediate adjacent tile
-
-    // checks if the tile in the given direction is within the board
-    if(!positionInBounds(n, row + deltaRow, col + deltaCol)){
-        return false;
-    }
-
-    for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
-        if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
-            return false;
-        }
-
-        if(board[i][j] == 'U'){
-            return false;
-        }
-
-        if(board[i][j] == colour){
-            return true;
-        }
-    }
-    // just in case everything fails
-    return 0;             
-}
-
-void flip(char board[][26], int boardDemension, char colour, int x, int y, int detail[3]){
-    int tilesToFlip = detail[2];
-    for(int i = 0; i <= tilesToFlip; i++){ // i is deltaRow
-        if(i == 0){
-            board[y][x] = colour;
-            continue;
-        }
-        board[y + i*detail[0]][x + i*detail[1]] = colour;
-    }
-}
-
-int numberToFlip(char board[][26], int n, char colour, int col, int row, int deltaRow, int deltaCol){
-    int number = 0;
-    for(int i = row + deltaRow, j = col + deltaCol; j < n && j >= 0 && i < n && i >= 0; i += deltaRow, j += deltaCol){
-        if(board[i][j] == colour){
-            return number;
-        }else{
-            number ++;
+    for(int i = 0; i < m;i++){
+        printf("%d %d\n",details[i][0],details[i][1]);
+        for(int j = 0; j <= details[i][2]; j++){ // i is deltaRow
+            board[row + j*details[i][0]][col + j*details[i][1]] = turn;
         }
     }
 }
 
-void checkValidMove(char board[][26], int boardDemension, char colour, int x, int y, int *num, int details[8][3]){
-    int count = 0, tilesNum = 0;
-    for(int i = -1; i <= 1; i ++){
-        for(int j = -1; j <= 1; j ++){
-            if(!(i == 0 && j == 0)){ // deltaRow and deltaCol cannot both be 0
-                if (checkLegalInDirection(board, boardDemension, x, y, colour, i, j)){
-                    details[count][0] = i;
-                    details[count][1] = j;
-                    details[count][2] = numberToFlip(board, boardDemension, colour, y, x, i, j);
-                    
-                    // pointer changes the valid of numberOfTarget outside of the function
-                    *num = ++count;
-                }
-            }
-        }
-    }
-}
-
-void copyBoard(const char board[][26], char boardCopy[][26], int n){
+void initializeBoard(char board[][26], int n){
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++){
-            boardCopy[i][j] = board[i][j];
+            if(i + 1 == n/2){ // the upper middle row
+                if(i * j == (n-2) * (n-2) / 4){
+                    board[i][j] = 'W';
+                }else if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'B';
+                }else{
+                    board[i][j] = 'U';
+                }
+            }else if(i == n/2){ // the lower middle row
+                if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'B';
+                }else if(i * j == ((n-2) / 2 + 1) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'W';
+                }else{
+                    board[i][j] = 'U';
+                }
+            }else{ // every other places
+                board[i][j] = 'U';
+            }
         }
     }
 }
 
-void makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *col){
-    int result[3] = {}, highest = 0, lowestRow = n, lowestCol = n;
-    char oppositeColour = turn == 'W' ? 'B' : 'W';
-    // linkedList moves;
-    // moves.head = NULL;
+void printBoard(char board[][26], int n) {
+    (void)board;
+    (void)n;
 
-    for(int row = 0; row < n; row++){
-        for(int col = 0; col < n; col++){
-            if(board[row][col] == 'U'){
-                int number = 0, ori = 0;
-                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
-                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
-                        if(!(deltaRow == 0 && deltaCol == 0)){ 
-                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){ // passed this 
-                                continue;
-                            }
-                            for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
-                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
-                                    break;
-                                }
-                                
-                                if(board[i][j] == 'U'){
-                                    number = 0;
-                                    break;
-                                }else if(board[i][j] == oppositeColour){
-                                    number++;
-                                }
-                                if(board[i][j] == turn){
-                                    ori += number;
-                                    number = 0;
-                                    // 2 steps ahead
-                                    int nextRow, nextCol, nextScore, lanes;
-                                    int details[8][3];
-                                    char boardCopy[26][26];
-                                    copyBoard(board, boardCopy, n);
-                                    makeMove1(boardCopy, n, turn, &nextRow, &nextCol, &nextScore);
-                                    checkValidMove(boardCopy, n, oppositeColour, col, row, &lanes, details);
-                                    for(int i = 0; i < lanes; i++){
-                                        flip(boardCopy, n, turn, row, col, details[i]);
-                                    }
-                                    makeMove1(boardCopy, n, turn, &nextRow, &nextCol, &nextScore);
-                                    ori += nextScore;
-                                    insertAtBack(&moves, row, col, ori);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    char initial = 'a';
+    // prints the first row: column indexes
+    for(int i = 0; i <= n; i++){
+        if(i == 0){
+            printf("  ");
+        }else{
+            printf("%c", initial);
+            initial++;
         }
     }
 
-    *row = result[0];
-    *col = result[1];
+    printf("\n");
+
+    // main loop to print the board
+    initial = 'a';
+    for(int i = 0; i < n; i++){
+        printf("%c ", initial);
+        initial++;
+        for(int j = 0; j < n; j++){
+            printf("%c", board[i][j]);
+        }
+        printf("\n");
+    }
 }
 
 int main(){
+    char b[26][26];
+    int bd = 6;
+    initializeBoard(b, bd);
+    printBoard(b, bd);
+
+    sFlip(b, bd, 'W', 1, 3);
+
+    printBoard(b, bd);
     return 0;
 }
