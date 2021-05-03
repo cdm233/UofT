@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "contactList.h"
+// #include "contactList.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -106,7 +106,7 @@ int convertInputToDataStructure(linkedList *list) {
    }
    return numberOfContacts;
 }
-   
+
 // this function prints the list in aphabetical order
 void ListAllContacts(){
   nodePtr temp = list.head;
@@ -280,6 +280,7 @@ void swap(node* node1, node* node2){
    }
    count = 0;
    
+
    strcpy(node1->name, node2->name);
    // clears the phones number
    while(count != length){
@@ -337,11 +338,7 @@ int main()
 {  
    int numOfContacts = 0;
    list.head = NULL;
-
-   int a = sizeof(contactList[0]);
-   int b = sizeof(contactList[1]);
    
-
    // first move data from contactList.h to a data structure
    numOfContacts = convertInputToDataStructure(&list);
    // then sort the linked list in aphabetical order 

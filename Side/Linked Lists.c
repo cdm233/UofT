@@ -78,75 +78,6 @@ bool isEmpty(linkedList *list){
     return false;
 }
 
-// bool insertAtBack(linkedList *list, int value){
-//     if(isEmpty(list)){
-//         return insertAtFront(list, value);
-//     }
-//     node *n = list->head;
-
-//     while(n->link != NULL){
-//         n = n->link;
-//     }
-
-//     n->link = createNode(value);
-//     if(n->link == NULL){
-//         return false;
-//     }
-//     return true;
-// }
-
-// void deleteFront(linkedList *list){
-//     if(isEmpty(list)){
-//         return;
-//     }
-
-//     node *new = list->head->link;
-
-//     free(list->head);
-//     list->head = new;
-// }
-
-// void deleteBack(linkedList *list){
-//     if(isEmpty(list)){
-//         return;
-//     }
-//     if(list->head->link == NULL){
-//         deleteFront(list);
-//         return;
-//     }
-
-//     node *temp = list->head;
-//     node *back = list->head;
-
-//     while(temp->link != NULL){
-//         temp = temp->link;
-//         if(temp->link != NULL){
-//             back = back->link;
-//         }
-//     }
-
-//     free(temp);
-//     back->link = NULL;
-// }
-
-// int deleteAllNode(linkedList *list){
-//     int num = 0;
-//     while(!isEmpty(list)){
-//         deleteFront(list);
-//         num++;
-//     }
-//     list->head = NULL;
-//     return num;
-// }
-
-// recursive version of traverse
-// void printList(node *node){
-//     if(node != NULL){
-//         printf("%d",node->data);
-//         printList(node->link);
-//     }
-// }
-
 // binary search only for sorted array
 int binarySearch(int list[], int listLength, int target){
     int low = 0, high = listLength -1, mid;
@@ -163,30 +94,62 @@ int binarySearch(int list[], int listLength, int target){
     return -1;
 }
 
+linkedList joinLists(linkedList *list1, linkedList *list2){
+    node *temp = list2->head;
+    linkedList jointed;
+    jointed.head = NULL;
+    
+    while(temp != NULL){
+        if(temp->link == NULL){
+            break;
+        }
+        temp = temp->link;
+    }
+    temp->link = list1->head;
+    jointed.head = list2->head;
+    return jointed;
+}
+
+// reverse a LL without allocating new memory
+nodePtr reverse(linkedList list) {
+    nodePtr rlist = NULL;    
+    nodePtr temp = list.head;
+    while (temp != NULL) {
+        nodePtr np = temp;
+        temp = temp->link;
+        np->link = rlist;
+        rlist = np;
+    }
+    return rlist;
+}
+
 int main(void) {
     linkedList lists;
+    linkedList lists1;
     lists.head = NULL;
+    lists1.head= NULL;
 
-    insertAtFront(&lists, 0, 1, 1);
-    insertAtFront(&lists, 1, 0, 1);
-    insertAtFront(&lists, 3, 2, 1);
+    insertAtFront(&lists, 0, 0, 0);
+    insertAtFront(&lists, 1, 0, 0);
+    insertAtFront(&lists, 2, 0, 0);
+    insertAtFront(&lists, 3, 0, 0);
+    insertAtFront(&lists, 4, 0, 0);
+
+    lists.head = reverse(lists);
+
+    // nodePtr temp = lists.head;
+    // temp = temp->link;
+    // temp->col = 99;
+    // temp->link = NULL;
     
+    // insertAtFront(&lists1, 2, 0, 0);
+    // insertAtFront(&lists1, 2, 1, 3);
+    // insertAtFront(&lists1, 1, 3, 2);
     // traverse(&lists);
 
-    lists.head->link->score += 2;
     traverse(&lists);
-
-    // int a[] = {1,2,3,4,6,8,9,12,16,19,21,24,26,27,29,30};
-
-    // int l = sizeof(a)/sizeof(int);
-
-    // int b = binarySearch(a,l,9);
-
-    // printList(lists.head);
-
-    // deleteBack(&lists);
-
-    // traverse(&lists);
+    // printf("\n");
+    // traverse(&lists1);
 
     return 0;
 }

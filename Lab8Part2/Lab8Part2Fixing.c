@@ -1,19 +1,8 @@
-/*
- * File:        Reversi.c
- * Author:      APS105H1 Teaching Team
- * Modified by: * Derek Chen *
- * Student#:    1006751267
- * Date:        March 28, 2021
- */
-
 #include "project_reversi_skeleton.h" // DO NOT modify this line
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-// Note: You may want to add more function declarations here
-// =========   Function declaration  ==========
-/* None for now */
 void initializeBoard(char board[][26], int n);
 void checkValidMove(char board[][26], int boardDemension, char colour, int, int, int *, int details[8][3]);
 void flip(char board[][26], int boardDemension, char colour, int, int, int detail[3]);
@@ -21,23 +10,342 @@ int checkBoard(char board[][26], int boardDemension, char);
 int numberToFlip(char board[][26], int, char, int, int, int, int);
 int checkScore(char board[][26], int, char);
 
+bool positionInBounds(int n, int row, int col) {
+    (void)n;
+    (void)row;
+    (void)col;
+ 
+    if(row < n && row >= 0 && col < n && col >= 0){
+        return true;
+    }
+    return false;  
+}
+
+char oppose(char colour){
+    return colour == 'W' ? 'B' : 'W';
+}
+
+void sFlip(char board[][26], int n, char turn, int row, int col){
+    char oppositeColour = turn == 'W' ? 'B' : 'W';
+    int m = 0;
+    int details[8][3];
+    for(int dr = -1; dr <= 1; dr ++){
+        for(int dc = -1; dc <= 1; dc ++){
+            if(!(dr == 0 && dc == 0)){
+                int number = 0;
+                if(!positionInBounds(n, row + dr, col + dc)){ // passed this 
+                    continue;
+                }
+                for(int i = row + dr, j = col + dc; positionInBounds(n, i, j); i += dr, j += dc){
+                    if(i == row + dr && j == col + dc && board[i][j] != oppositeColour){ 
+                        number = 0;
+                        break;
+                    }
+                    
+                    if(board[i][j] == 'U'){
+                        number = 0;
+                        break;
+                    }else if(board[i][j] == oppositeColour){
+                        number++;
+                    }
+                    if(board[i][j] == turn){
+                        // printf("?\n");
+                        details[m][0] = dr;
+                        details[m][1] = dc;
+                        details[m][2] = number;
+                        number = 0;
+                        m++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    int rrow = row, ccol = col;
+    for(int i = 0; i < m; i++){
+        // printf("row,col: %d%d\n", row, col);
+        // printf("deltaRow, deltaCol: %d %d\n",details[i][0],details[i][1]);
+        for(int j = 0; j <= details[i][2]; j++){ // i is deltaRow
+            board[rrow + j*details[i][0]][ccol + j*details[i][1]] = turn;
+        }
+    }
+}
+
+typedef struct nodes{
+    int row;
+    int col;
+    double score;
+    struct nodes *link;
+}node, nodePtr;
+
+typedef struct lists{
+    node *head;
+}linkedList;
+
+node *createNode(int row, int col, double score){
+    node *new = (node*) malloc(sizeof(node));
+    if(new != NULL){
+        new->row = row;
+        new->col = col;
+        new->score = score;
+        new->link = NULL;
+    }
+    return new;
+}
+
+void copyBoard(const char src[][26], char des[][26], int n){
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            des[i][j] = src[i][j];
+        }
+    }
+}
+
+bool insertAtFront(linkedList *list, int row, int col, double score){
+    if(list->head == NULL){
+        list->head = createNode(row, col, score);
+        return list->head != NULL;
+    }
+    node *temp = createNode(row, col, score);
+    if(temp == NULL){
+        return false;
+    }
+
+    temp->link = list->head;
+    list->head = temp;
+    
+    return true;
+}
+
+int tilesPlaces(const char board[][26], int n){
+    int count = 0;
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            if(board[i][j] != 'U'){
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+double prediction(const char board[][26], int n, char turn, linkedList *moves){
+    char oppositeColour = oppose(turn);
+    if(tilesPlaces(board, n) > n*n-5){
+        printf(" ");
+    }
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            if(board[row][col] == 'U'){
+                int tilesToFlip = 0, totalTiles = 0;
+                bool valid = false;
+                for(int deltaRow = -1; deltaRow <= 1; deltaRow ++){
+                    for(int deltaCol = -1; deltaCol <= 1; deltaCol ++){
+                        if(!(deltaRow == 0 && deltaCol == 0)){
+                            if(!positionInBounds(n, row + deltaRow, col + deltaCol)){
+                                continue;
+                            }
+                            for(int i = row + deltaRow, j = col + deltaCol; positionInBounds(n, i, j); i += deltaRow, j += deltaCol){
+                                if(i == row + deltaRow && j == col + deltaCol && board[i][j] != oppositeColour){ 
+                                    tilesToFlip = 0;
+                                    break;
+                                }
+                                if(board[i][j] == 'U'){
+                                    tilesToFlip = 0;
+                                    break;
+                                }else if(board[i][j] == oppositeColour){
+                                    tilesToFlip ++;
+                                }
+
+                                if(!positionInBounds(n, i + deltaRow, j + deltaCol)){
+                                    tilesToFlip = 0;
+                                }
+
+                                if(board[i][j] == turn){
+                                    totalTiles += tilesToFlip;
+                                    tilesToFlip = 0;
+                                    valid = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if(valid){
+                    insertAtFront(moves, row, col, (double) totalTiles);
+                    totalTiles = 0;
+                }
+            }
+        }
+    }
+}
+
+void traverse(linkedList *moves, char colour){
+    node *temp = moves->head;
+    while (temp != NULL){
+        linkedList predictedMoves;
+        predictedMoves.head = NULL;
+        char preColour = oppose(colour);
+        // prediction();
+    }
+}
+
+double highestScore(linkedList *list, int *preRow, int *preCol){
+    double higest = -20.0;
+    double preScore = 0.0;
+    node *preTemp = list->head;
+    while(preTemp != NULL){
+        if(preTemp->score > higest){
+            // printf("higest: %d, now: %d\n",higest, preTemp->score);
+            *preRow = preTemp->row;
+            *preCol = preTemp->col;
+            preScore = preTemp->score;
+            higest = preScore;
+        }
+        preTemp = preTemp->link;
+    }
+    return preScore;
+}
+
+double lowestScore(linkedList *list, int *preRow, int *preCol){
+    double lowest = 100.0;
+    double preScore = 0.0;
+    node *preTemp = list->head;
+    while(preTemp != NULL){
+        if(preTemp->score < lowest){
+            *preRow = preTemp->row;
+            *preCol = preTemp->col;
+            preScore = preTemp->score;
+        }
+    }
+    return preScore;
+}
+
+void printList(linkedList *list){
+    node *temp = list->head;
+    int number = 0;
+    while(temp != NULL){
+        printf("%dth node: %c%c%lf\n", number, temp->row + 'a', temp->col + 'a', temp->score);
+        number++;
+        temp = temp->link;
+    }
+}
+
+int makeMove1(const char board[26][26], int n, char turn, int *row, int *col) {
+    char oppositeColour = oppose(turn);
+    linkedList moves;
+    moves.head = NULL;
+
+    char boarCopy[26][26];
+
+    prediction(board, n, turn, &moves); // produces base line
+
+    if(tilesPlaces(board, n) < n * (n/4)){ // early game do corner
+        node *temp1 = moves.head;
+        int closest = 2*n;
+        
+        printf("early game\n");
+
+        while (temp1 != NULL){
+            if((temp1->row - 1) <= n/2 && (temp1->col - 1) <= n/2){
+                if((temp1->row + temp1->col) < closest){
+                    *row = temp1->row;
+                    *col = temp1->col;
+                }
+            }else if(temp1->row > n/2 && (temp1->col - 1) <= n/2){
+                if((n - temp1->row + temp1->col) < closest){
+                    *row = temp1->row;
+                    *col = temp1->col;
+                }
+            }else if((temp1->row - 1) <= n/2 && temp1->col > n/2){  
+                if((temp1->row + n - temp1->col) < closest){
+                    *row = temp1->row;
+                    *col = temp1->col;
+                }
+            }else{
+                if((n - temp1->row + n - temp1->col) < closest){
+                    *row = temp1->row;
+                    *col = temp1->col;
+                }
+            }
+            temp1 = temp1->link;
+        }
+    }else{ // late game do tiles
+        node *temp = moves.head;
+        printf("valid moves:\n");
+        printList(&moves);
+        while (temp != NULL){
+            copyBoard(board, boarCopy, n);
+            // printf("now for %c%c\n", temp->row + 'a', temp->col + 'a');
+            for(int step = 0; step < 7; step++){
+                // printf("step%d:\n",step);
+                // printBoard(boarCopy, n);
+
+                // printf("placed at:\n");
+
+                linkedList predictedMoves;
+                predictedMoves.head = NULL;
+                char preColour = oppose(turn);
+                sFlip(boarCopy, n, turn, temp->row, temp->col);
+                prediction(boarCopy, n, preColour, &predictedMoves);
+                
+                int preRow = 0, preCol = 0;
+                double preScore = 0.0, higest = 0.0;
+
+                preScore = highestScore(&predictedMoves, &preRow, &preCol);
+                temp->score -= preScore;
+                sFlip(boarCopy, n, preColour, preRow, preCol);
+
+                // printf("%c %c%c\n", preColour, preRow + 'a', preCol + 'a');
+
+                linkedList predictedMovesTurn;
+                predictedMovesTurn.head = NULL;
+
+                prediction(boarCopy, n, turn, &predictedMovesTurn);
+                preScore = highestScore(&predictedMovesTurn, &preRow, &preCol);
+                temp->score += preScore;
+                // printf("%c %c%c\n", turn, preRow + 'a', preCol + 'a');
+
+                sFlip(boarCopy, n, preColour, preRow, preCol);
+            }
+            printf("scored:%.2lf\n", temp->score);
+            temp = temp->link;
+        }
+        // double s = highestScore(&moves, row, col);
+        double higest = 0.0;
+        double preScore = 0.0;
+        node *preTemp = moves.head;
+        while(preTemp != NULL){
+            if(preTemp->score > higest){
+                // printf("higest: %.2lf, now: %.2lf\n",higest, preTemp->score);
+                *row = preTemp->row;
+                *col = preTemp->col;
+                preScore = preTemp->score;
+                higest = preScore;
+            }
+            preTemp = preTemp->link;
+        }
+        // printf("final: %.2lf\n",preScore);
+    }
+}
+
 // this function initializes the board and the initial four center tiles
 void initializeBoard(char board[][26], int n){
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n; j++){
             if(i + 1 == n/2){ // the upper middle row
                 if(i * j == (n-2) * (n-2) / 4){
-                    board[i][j] = 'W';
-                }else if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
                     board[i][j] = 'B';
+                }else if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'W';
                 }else{
                     board[i][j] = 'U';
                 }
             }else if(i == n/2){ // the lower middle row
                 if(i * j == ((n-2) / 2) * ((n-2) / 2 + 1)){
-                    board[i][j] = 'B';
-                }else if(i * j == ((n-2) / 2 + 1) * ((n-2) / 2 + 1)){
                     board[i][j] = 'W';
+                }else if(i * j == ((n-2) / 2 + 1) * ((n-2) / 2 + 1)){
+                    board[i][j] = 'B';
                 }else{
                     board[i][j] = 'U';
                 }
@@ -169,22 +477,6 @@ void printBoard(char board[][26], int n) {
 }
 
 /*
- * Function:  positionInBounds 
- * --------------------
- * Checks whether the specified (row, col) lies within the board dimensions.
- */
-bool positionInBounds(int n, int row, int col) {
-    (void)n;
-    (void)row;
-    (void)col;
-
-    if(row < n && row >= 0 && col < n && col >= 0){
-        return true;
-    }
-    return false;  
-}
-
-/*
  * Function:  checkLegalInDirection 
  * --------------------
  * Checks whether (row, col) is a legal position for a tile of colour by “looking” in the direction 
@@ -310,6 +602,11 @@ int main(void) {
     bool wPlayerNoMove = false;
     bool bPlayerNoMove = false;
 
+    bool pass = true;
+
+    linkedList possibleMoves;
+    possibleMoves.head = NULL;
+
     printf("Enter the board dimension: ");
     // scanf leaves newline in the buffer; solution is to put a whitespace before %
     scanf(" %d",&boardDemension);
@@ -351,13 +648,29 @@ int main(void) {
         if(currentPlayer == computerColour){
             // if the current player is computer 
             makeMove(board, boardDemension, computerColour, &col, &row);
-            printf("Computer places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
-        }else{
-            printf("Enter move for colour %c (RowCol): ", currentPlayer);
-            scanf(" %c%c", &col, &row);
+            printf("Computer1 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
+            
+            // printf("Enter move for colour %c (RowCol): ", currentPlayer);
+            // scanf(" %c%c", &col, &row);
 
-            col = col - 'a';
-            row = row - 'a';
+            // col = col - 'a';
+            // row = row - 'a';
+        }else{
+            // makeMove(board, boardDemension, currentPlayer, &col, &row);
+            int col1, row1;
+            makeMove1(board, boardDemension, currentPlayer, &col, &row);
+            // if(pass){
+            //     makeMove1(board, boardDemension, currentPlayer, &col, &row);
+            //     if(tilesPlaces(board, boardDemension) + 1 > boardDemension * (boardDemension/4)){
+            //         pass = false;
+            //     }
+            // }else{
+            //     printf("stop");
+            //     scanf("%d%d",&row,&col);
+            // }
+
+            // printf("smarter places %c %c\n", col1 + 'a', row1 + 'a');
+            printf("Computer2 places %c at %c%c.\n", currentPlayer, col + 'a', row + 'a');
         }
 
         checkValidMove(board, boardDemension, currentPlayer, col, row, num, details);
@@ -385,9 +698,9 @@ int main(void) {
     int score = checkScore(board, boardDemension, computerColour);
 
     if(score > boardDemension * boardDemension - score){
-        printf("%c player wins.", computerColour);
+        printf("%c player wins(%d:%d).", computerColour, score, boardDemension*boardDemension-score);
     }else if(score < boardDemension * boardDemension - score){
-        printf("%c player wins.", computerColour == 'W' ? 'B' : 'W');
+        printf("%c player wins(%d:%d).", computerColour == 'W' ? 'B' : 'W', score, boardDemension*boardDemension-score);
     }else{
         printf("tie.");
     }

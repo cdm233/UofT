@@ -10,8 +10,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "lab8part2lib.h"
-#include "liblab8part2.a"
+// #include <Lab8Part2Fixing.c>
+
+// #include "lab8part2lib.h"
+// #include "liblab8part2.a"
+// #include <sys/time.h> 
+// #include <sys/resource.h>
 
 // Note: You may want to add more function declarations here
 // =========   Function declaration  ==========
@@ -605,7 +609,8 @@ int makeSmarterMove(const char board[26][26], int n, char turn, int *row, int *c
 
                     // prediction
                     sFlip(boardCopy, n, turn, row, col);
-                    for(int step = 0; step < 7; step++){
+
+                    for(int step = 0; step < 3; step++){
                         linkedList predictedMoves;
                         predictedMoves.head = NULL;
 
